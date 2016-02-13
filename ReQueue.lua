@@ -42,7 +42,7 @@ function ReQueue:new(o)
 end
 
 function ReQueue:Init()
-    Apollo.RegisterAddon(self, false, "", {})
+    Apollo.RegisterAddon(self, true, "ReQueue", {"uiMapper:0.9"})
 end
 
 -----------------------------------------------------------------------------------------------
@@ -66,6 +66,10 @@ function ReQueue:OnLoad()
 
 	  self.xmlDoc = XmlDoc.CreateFromFile("ReQueue.xml")
 	  self.xmlDoc:RegisterCallback("OnDocLoaded", self)
+    local uiMapper = Apollo.GetPackage("uiMapper:0.9").tPackage
+    self.ui = uiMapper:new({
+
+    })
 end
 
 function ReQueue:InitHooks()
@@ -205,6 +209,12 @@ end
 -----------------------------------------------------------------------------------------------
 -- ReQueue Functions
 -----------------------------------------------------------------------------------------------
+function ReQueue:OnConfigure()
+  if self.ui then
+    self.ui.wndMain:Show(true,true)
+  end
+end
+
 function ReQueue:IsQueueingSoloInGroup()
     return self.queueType == self.EnumQueueType.SoloQueue and InGroup()
 end
