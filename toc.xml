@@ -6,5 +6,6 @@
     <Form Name="_uiMapper\panel.xml"/>
 
     <Script Name="ReQueue.lua"/>
+    <Script Name="settings.lua"/>
     <Form Name="ReQueue.xml"/>
 </Addon>

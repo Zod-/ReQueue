@@ -11,11 +11,16 @@ require "MatchingGame"
 -----------------------------------------------------------------------------------------------
 -- ReQueue Module Definition
 -----------------------------------------------------------------------------------------------
-local ReQueue = {}
-
-ReQueue.EnumQueueType = {
-    ["SoloQueue"] = 0,
-    ["GroupQueue"] = 1
+local ReQueue = {
+	uiMapperLib = "uiMapper:0.9",
+  EnumQueueType = {
+    SoloQueue = 0,
+    GroupQueue = 1
+  },
+  defaults = {},
+  config = {},
+  version = "0.3.1",
+  author = "Zod Bain@Luminai"
 }
 
 local InInstanceGroup = GroupLib.InInstance
@@ -30,11 +35,7 @@ function ReQueue:new(o)
     o = o or {}
     setmetatable(o, self)
     self.__index = self
-
-    self.autoQueue = false
     self.lastQueueData = {}
-    self.queueType = self.EnumQueueType.SoloQueue
-    self.ignoreWarning = false
     self.inInstanceGroup = InInstanceGroup()
     self.MatchMaker = nil
 
@@ -42,13 +43,24 @@ function ReQueue:new(o)
 end
 
 function ReQueue:Init()
-    Apollo.RegisterAddon(self, true, "ReQueue", {"uiMapper:0.9"})
+    Apollo.RegisterAddon(self, true, "ReQueue", {self.uiMapperLib})
 end
+
+function ReQueue:GetDefaults()
+  return {
+    autoQueue = false,
+    queueType = self.EnumQueueType.SoloQueue,
+    ignoreWarning = false
+  }
+end
+
 
 -----------------------------------------------------------------------------------------------
 -- ReQueue OnLoad
 -----------------------------------------------------------------------------------------------
 function ReQueue:OnLoad()
+    self.defaults = self:GetDefaults()
+    self.config = self:GetDefaults()
     Apollo.GetPackage("Gemini:Hook-1.0").tPackage:Embed(self)
 
     Apollo.RegisterSlashCommand("requeue", "OnSlashCommand", self)
@@ -66,10 +78,18 @@ function ReQueue:OnLoad()
 
 	  self.xmlDoc = XmlDoc.CreateFromFile("ReQueue.xml")
 	  self.xmlDoc:RegisterCallback("OnDocLoaded", self)
-    local uiMapper = Apollo.GetPackage("uiMapper:0.9").tPackage
-    self.ui = uiMapper:new({
 
+    local uiMapper = Apollo.GetPackage(self.uiMapperLib).tPackage
+    self.ui = uiMapper:new({
+      container = self.config,
+      defaults  = self.defaults,
+      name      = "ReQueue Configuration",
+      author    = self.author,
+      version   = self.version
     })
+    self.ui:build(function(ui)
+      self:BuildConfig(ui)
+    end)
 end
 
 function ReQueue:InitHooks()
@@ -90,12 +110,12 @@ end
 -- ReQueue Hooks
 -----------------------------------------------------------------------------------------------
 function ReQueue:Queue(queueData)
-    self.queueType = self.EnumQueueType.SoloQueue
+    self.config.queueType = self.EnumQueueType.SoloQueue
     self:OnQueue(queueData)
 end
 
 function ReQueue:QueueAsGroup(queueData)
-    self.queueType = self.EnumQueueType.GroupQueue
+    self.config.queueType = self.EnumQueueType.GroupQueue
     self:OnQueue(queueData)
 end
 
@@ -117,7 +137,12 @@ end
 -----------------------------------------------------------------------------------------------
 -- ReQueue Events
 -----------------------------------------------------------------------------------------------
-function ReQueue:OnSlashCommand()
+function ReQueue:OnSlashCommand(cmd, args)
+    if args == "config" then
+        self:OnConfigure()
+        return
+    end
+
     if MatchingGame.IsQueuedForMatching() then
         self:ToggleQueueStatusWindow()
         return
@@ -128,7 +153,7 @@ function ReQueue:OnSlashCommand()
         return
     end
 
-    if self:IsQueueingSoloInGroup() and not self.ignoreWarning then
+    if self:IsQueueingSoloInGroup() and not self.config.ignoreWarning then
         self:DisplaySoloQueueWarning()
     else
         self:StartQueue()
@@ -146,7 +171,7 @@ function ReQueue:OnGroupLeave()
             self:OnGroupLeave()
         end
     else
-        self.ignoreWarning = false
+        self.config.ignoreWarning = false
     end
 end
 
@@ -160,8 +185,7 @@ end
 
 function ReQueue:OnSave(eType)
     local saveData = {
-        ignoreWarning = self.ignoreWarning,
-        queueType = self.queueType,
+        config = self.config,
         autoQueue = self.autoQueue,
         lastQueueData = {}
     }
@@ -188,13 +212,17 @@ function ReQueue:LoadSaveData()
         return
     end
 
-    if InGroup() then
-        self.ignoreWarning = self.saveData.ignoreWarning
-        self.queueType = self.saveData.queueType
-    else
-        self.queueType = self.EnumQueueType.SoloQueue
+    for k, v in pairs(self.saveData.config) do
+      if saved[k] ~= nil then
+        self.config[k] = saved[k]
+      end
     end
-    self.autoQueue = self.saveData.autoQueue
+
+    if not InGroup() then
+        self.config.queueType = self.defaults.queueType
+        self.config.ignoreWarning = self.defaults.ignoreWarning
+    end
+
     if not self.saveData.lastQueueData then
         self.saveData.lastQueueData = {}
     end
@@ -216,7 +244,7 @@ function ReQueue:OnConfigure()
 end
 
 function ReQueue:IsQueueingSoloInGroup()
-    return self.queueType == self.EnumQueueType.SoloQueue and InGroup()
+    return self.config.queueType == self.EnumQueueType.SoloQueue and InGroup()
 end
 
 function ReQueue:IsQueueDataEmpty()
@@ -252,7 +280,7 @@ function ReQueue:DisplaySoloQueueWarning()
 end
 
 function ReQueue:StartQueue()
-    if self.queueType == self.EnumQueueType.SoloQueue then
+    if self.config.queueType == self.EnumQueueType.SoloQueue then
         Queue(self.lastQueueData)
     else
         QueueAsGroup(self.lastQueueData)
@@ -320,8 +348,8 @@ function ReQueue:OnButtonSoloQueue(wndHandler, wndControl, eMouseButton)
 end
 
 function ReQueue:OnButtonUse(queueType)
-    self.queueType = queueType
-    self.ignoreWarning = self.wndSoloQW:FindChild("RememberCheckBox"):IsChecked()
+    self.config.queueType = queueType
+    self.config.ignoreWarning = self.wndSoloQW:FindChild("RememberCheckBox"):IsChecked()
     self.wndSoloQW:Close()
     self:StartQueue()
 end
