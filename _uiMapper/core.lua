@@ -78,7 +78,7 @@ function Lib:build(callback)
 	self.callback = callback
 
 	--load our config template
-	self.xmlDoc = XmlDoc.CreateFromFile("_uiMapper/panel.xml")
+	self.xmlDoc = XmlDoc.CreateFromFile('_uiMapper/panel.xml')
 	self.xmlDoc:RegisterCallback("OnDocLoaded", self)
 
 	return self
@@ -839,7 +839,7 @@ function Lib:color(params)
 
 		page:ArrangeChildrenVert()
 	end
-	
+
 	return self
 end
 --page divider
@@ -958,7 +958,7 @@ function Lib:_RGBtoHEX(rgbStub)
 	while(rgbStub > 0)do
 		local index = math.fmod(rgbStub, 16) + 1
 		rgbStub = math.floor(rgbStub / 16)
-		hex = string.sub('0123456789ABCDEF', index, index) .. hex			
+		hex = string.sub('0123456789ABCDEF', index, index) .. hex
 	end
 	if(string.len(hex) == 0)then
 		hex = '00'
