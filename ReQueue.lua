@@ -54,7 +54,6 @@ function ReQueue:GetDefaults()
   }
 end
 
-
 -----------------------------------------------------------------------------------------------
 -- ReQueue OnLoad
 -----------------------------------------------------------------------------------------------
@@ -184,6 +183,10 @@ function ReQueue:OnGroupJoin()
 end
 
 function ReQueue:OnSave(eType)
+  if eType ~= GameLib.CodeEnumAddonSaveLevel.Character then
+    return nil
+  end
+
   local saveData = {
     config = self.config,
     autoQueue = self.autoQueue,
@@ -197,13 +200,14 @@ function ReQueue:OnSave(eType)
 end
 
 function ReQueue:OnRestore(eType, saveData)
-  if eType == GameLib.CodeEnumAddonSaveLevel.Character then
-    self.saveData = saveData
+  if eType ~= GameLib.CodeEnumAddonSaveLevel.Character then
+    return
+  end
+  self.saveData = saveData
 
-    --When logging in wait for character to be loaded
-    if IsCharacterLoaded() then
-      self:LoadSaveData()
-    end
+  --When logging in wait for character to be loaded
+  if IsCharacterLoaded() then
+    self:LoadSaveData()
   end
 end
 
@@ -212,9 +216,9 @@ function ReQueue:LoadSaveData()
     return
   end
 
-  for k, v in pairs(self.saveData.config) do
-    if saved[k] ~= nil then
-      self.config[k] = saved[k]
+  for k, v in pairs(self.config) do
+    if self.saveData.config[k] ~= nil then
+      self.config[k] = self.saveData.config[k]
     end
   end
 
@@ -223,12 +227,8 @@ function ReQueue:LoadSaveData()
     self.config.ignoreWarning = self.defaults.ignoreWarning
   end
 
-  if not self.saveData.lastQueueData then
-    self.saveData.lastQueueData = {}
-  end
-
   self.lastQueueData = {}
-  for k, qd in pairs(self.saveData.lastQueueData) do
+  for k, qd in pairs(self.saveData.lastQueueData or {}) do
     table.insert(self.lastQueueData, self:UnWrapSerializedMatchingGame(qd))
   end
   self.saveData = nil
