@@ -28,6 +28,7 @@ local InGroup = GroupLib.InGroup
 local Queue = MatchingGame.Queue
 local QueueAsGroup = MatchingGame.QueueAsGroup
 local IsCharacterLoaded = GameLib.IsCharacterLoaded
+local GetSelectedRoles = MatchingGame.GetSelectedRoles
 -----------------------------------------------------------------------------------------------
 -- Initialization
 -----------------------------------------------------------------------------------------------
@@ -50,7 +51,8 @@ function ReQueue:GetDefaults()
   return {
     autoQueue = false,
     queueType = self.EnumQueueType.SoloQueue,
-    ignoreWarning = false
+    ignoreWarning = false,
+    autoRoleSelect = true
   }
 end
 
@@ -93,6 +95,7 @@ end
 function ReQueue:InitHooks()
   self:Hook(MatchingGame, "Queue")
   self:Hook(MatchingGame, "QueueAsGroup")
+  self:PostHook(self.MatchMaker, "OnRoleCheck")
   self:RawHook(self.MatchMaker, "OnSoloQueue")
   self:RawHook(self.MatchMaker, "OnGroupQueue")
 end
@@ -100,6 +103,12 @@ end
 -----------------------------------------------------------------------------------------------
 -- ReQueue Hooks
 -----------------------------------------------------------------------------------------------
+function ReQueue:OnRoleCheck()
+  if self.config.autoRoleSelect and #GetSelectedRoles() > 0 then
+    self.MatchMaker:OnAcceptRole()
+  end
+end
+
 function ReQueue:Queue(queueData)
   self.config.queueType = self.EnumQueueType.SoloQueue
   self:OnQueue(queueData)

@@ -8,6 +8,10 @@ function ReQueue:BuildConfig(ui)
     label = "Ignore solo-queue warnings in this group",
     map = "ignoreWarning"
   })
+  :check({
+    label = "Automatically confirm your roles when you are not the leader of the group",
+    map = "autoRoleSelect"
+  })
 
   -- Credits
   :navdivider()
