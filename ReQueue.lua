@@ -76,7 +76,6 @@ function ReQueue:OnLoad()
   self:InitHooks()
 
   self.xmlDoc = XmlDoc.CreateFromFile("ReQueue.xml")
-  self.xmlDoc:RegisterCallback("OnDocLoaded", self)
 
   local uiMapper = Apollo.GetPackage(self.uiMapperLib).tPackage
   self.ui = uiMapper:new({
@@ -96,13 +95,6 @@ function ReQueue:InitHooks()
   self:Hook(MatchingGame, "QueueAsGroup")
   self:RawHook(self.MatchMaker, "OnSoloQueue")
   self:RawHook(self.MatchMaker, "OnGroupQueue")
-end
-
-function ReQueue:OnDocLoaded()
-  if self.xmlDoc ~= nil and self.xmlDoc:IsLoaded() then
-    self.wndSoloQW = Apollo.LoadForm(self.xmlDoc, "SoloQueueWarningForm", nil, self)
-    self.wndSoloQW:Show(false, true)
-  end
 end
 
 -----------------------------------------------------------------------------------------------
@@ -273,6 +265,15 @@ function ReQueue:UpdateGroupQueueButtonStatus()
 end
 
 function ReQueue:DisplaySoloQueueWarning()
+  if not self.xmlDoc then
+    return
+  elseif not self.xmlDoc:IsLoaded() then
+    self.xmlDoc:RegisterCallback("DisplaySoloQueueWarning", self)
+    return
+  end
+
+  self.wndSoloQW = Apollo.LoadForm(self.xmlDoc, "SoloQueueWarningForm", nil, self)
+
   self:UpdateGroupQueueButtonStatus()
   self.wndSoloQW:FindChild("RememberCheckBox"):SetCheck(false)
   self.wndSoloQW:Show(true)
@@ -350,12 +351,13 @@ end
 function ReQueue:OnButtonUse(queueType)
   self.config.queueType = queueType
   self.config.ignoreWarning = self.wndSoloQW:FindChild("RememberCheckBox"):IsChecked()
-  self.wndSoloQW:Close()
+  self:OnButtonDecline()
   self:StartQueue()
 end
 
 function ReQueue:OnButtonDecline(wndHandler, wndControl, eMouseButton)
   self.wndSoloQW:Close()
+  self.wndSoloQW = nil
 end
 
 -----------------------------------------------------------------------------------------------
