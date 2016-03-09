@@ -374,6 +374,10 @@ end
 
 function ReQueue:OnButtonDecline(wndHandler, wndControl, eMouseButton)
   self.wndSoloQW:Close()
+end
+
+function ReQueue:OnSoloQWClosed(wndHandler, wndControl, eMouseButton)
+  --free memory
   self.wndSoloQW = nil
 end
 

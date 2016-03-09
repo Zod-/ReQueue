@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
 <Forms>
     <Form Class="Window" LAnchorPoint="0.5" LAnchorOffset="-200" TAnchorPoint="0.5" TAnchorOffset="-224" RAnchorPoint="0.5" RAnchorOffset="200" BAnchorPoint="0.5" BAnchorOffset="-28" RelativeToClient="1" Font="Default" Text="" Template="" Name="SoloQueueWarning" Border="0" Picture="1" SwallowMouseClicks="1" Moveable="1" Escapable="1" Overlapped="1" BGColor="ffffffff" TextColor="ffffffff" TextId="" TooltipColor="" Tooltip="" Sprite="BK3:sprHolo_Alert_Confirm">
+        <Event Name="WindowClosed" Function="OnSoloQWClosed"/>
         <Control Class="Button" Base="BK3:btnHolo_Red_Med" Font="CRB_Button" ButtonType="PushButton" RadioGroup="" LAnchorPoint="0.5" LAnchorOffset="56" TAnchorPoint="1" TAnchorOffset="-115" RAnchorPoint="0.5" RAnchorOffset="170" BAnchorPoint="1" BAnchorOffset="-42" DT_VCENTER="1" DT_CENTER="1" Name="IgnoreButton" BGColor="white" TextColor="white" NewControlDepth="2" WindowSoundTemplate="" TextId="Launcher_Eula_Decline" Text="" TooltipColor="" NormalTextColor="UI_BtnTextRedNormal" PressedTextColor="UI_BtnTextRedPressed" FlybyTextColor="UI_BtnTextRedFlyby" PressedFlybyTextColor="UI_BtnTextRedPressedFlyby" DisabledTextColor="UI_BtnTextRedDisabled" Template="CRB_Hologram" RelativeToClient="1">
             <Event Name="ButtonSignal" Function="OnButtonDecline"/>
         </Control>
