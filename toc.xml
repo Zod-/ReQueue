@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<Addon Author="Zod Bain@Luminai" APIVersion="11" Name="ReQueue" Description="Remembers the last queued content so that you can requeue with a macro or even automatically.">
+<Addon Author="Zod Bain@Jabbit" APIVersion="11" Name="ReQueue" Description="Remembers the last queued content so that you can requeue with a macro or even automatically.">
     <Script Name="libs\GeminiHook\GeminiHook-1.0.lua" />
 
     <Script Name="_uiMapper\core.lua"/>

@@ -20,7 +20,7 @@ local ReQueue = {
   defaults = {},
   config = {},
   version = "0.3.1",
-  author = "Zod Bain@Luminai"
+  author = "Zod Bain@Jabbit"
 }
 
 local InInstanceGroup = GroupLib.InInstance
