@@ -17,6 +17,6 @@ function ReQueue:BuildConfig(ui)
   :navdivider()
   :category("Credits")
 	:header("Developer Credits")
-  :note("This addon is developed by Zod Bain@Luminai \
+  :note("This addon is developed by Zod Bain@Jabbit \
   \nSpecial thanks to the developers of _uiMapper and GeminiHook which made it a lot easier to create this addon.")
 end
