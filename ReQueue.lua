@@ -281,7 +281,7 @@ function ReQueue:DisplaySoloQueueWarning()
     return
   end
 
-  self.wndSoloQW = Apollo.LoadForm(self.xmlDoc, "SoloQueueWarningForm", nil, self)
+  self.wndSoloQW = Apollo.LoadForm(self.xmlDoc, "SoloQueueWarning", nil, self)
 
   self:UpdateGroupQueueButtonStatus()
   self.wndSoloQW:FindChild("RememberCheckBox"):SetCheck(false)
