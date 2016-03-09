@@ -29,6 +29,9 @@ local Queue = MatchingGame.Queue
 local QueueAsGroup = MatchingGame.QueueAsGroup
 local IsCharacterLoaded = GameLib.IsCharacterLoaded
 local GetSelectedRoles = MatchingGame.GetSelectedRoles
+local IsRoleCheckActive = MatchingGame.IsRoleCheckActive
+local ConfirmRole = MatchingGame.ConfirmRole
+local DeclineRoleCheck = MatchingGame.DeclineRoleCheck
 -----------------------------------------------------------------------------------------------
 -- Initialization
 -----------------------------------------------------------------------------------------------
@@ -140,6 +143,9 @@ end
 function ReQueue:OnSlashCommand(cmd, args)
   if args == "config" then
     self:OnConfigure()
+    return
+  elseif args == "roles" or args == "role" then
+    self:DisplayRoleConfirm()
     return
   end
 
@@ -273,6 +279,20 @@ function ReQueue:UpdateGroupQueueButtonStatus()
   end
 end
 
+function ReQueue:DisplayRoleConfirm()
+  if not self.xmlDoc then
+    return
+  elseif not self.xmlDoc:IsLoaded() then
+    self.xmlDoc:RegisterCallback("DisplayRoleConfirm", self)
+    return
+  end
+
+  self.wndRoleConfirm = Apollo.LoadForm(self.xmlDoc, "RoleConfirm", nil, self)
+
+  self.wndRoleConfirm:Show(true)
+  self.wndRoleConfirm:ToFront()
+end
+
 function ReQueue:DisplaySoloQueueWarning()
   if not self.xmlDoc then
     return
@@ -381,6 +401,62 @@ function ReQueue:OnSoloQWClosed(wndHandler, wndControl, eMouseButton)
   self.wndSoloQW = nil
 end
 
+---------------------------------------------------------------------------------------------------
+-- ConfirmRole Form Functions
+---------------------------------------------------------------------------------------------------
+function ReQueue:OnAcceptRole(wndHandler, wndControl, eMouseButton)
+  if IsRoleCheckActive() then
+    ConfirmRole()
+  end
+  self.wndRoleConfirm:Close()
+end
+
+function ReQueue:OnCancelRole(wndHandler, wndControl, eMouseButton)
+  if IsRoleCheckActive() then
+    DeclineRoleCheck()
+  end
+  self.wndRoleConfirm:Close()
+end
+
+function ReQueue:OnToggleRoleCheck(wndHandler, wndControl, eMouseButton)
+  if wndHandler ~= wndControl then
+    return
+  end
+
+  MatchingGame.SelectRole(wndHandler:GetData(), wndHandler:IsChecked())
+
+  local selectedRoles = MatchingGame.GetSelectedRoles()
+  self.wndRoleConfirm:FindChild("AcceptButton"):Enable(#selectedRoles > 0)
+end
+
+function ReQueue:OnRoleConfirmClosed(wndHandler, wndControl, eMouseButton)
+  --free memory
+  self.wndRoleConfirm = nil
+end
+
+function ReQueue:OnRoleConfirmShow(wndHandler, wndControl, eMouseButton)
+  local roleConfirmButtons = {
+    [MatchingGame.Roles.Tank] = self.wndRoleConfirm:FindChild("TankBtn"),
+    [MatchingGame.Roles.Healer] = self.wndRoleConfirm:FindChild("HealerBtn"),
+    [MatchingGame.Roles.DPS] = self.wndRoleConfirm:FindChild("DPSBtn"),
+  }
+
+  for role, wndButton in pairs(roleConfirmButtons) do
+    wndButton:Enable(false)
+    wndButton:SetData(role)
+  end
+
+  for idx, role in pairs(MatchingGame.GetEligibleRoles()) do
+    roleConfirmButtons[role]:Enable(true)
+  end
+
+  local selectedRoles = MatchingGame.GetSelectedRoles()
+  for idx, role in pairs(selectedRoles) do
+    roleConfirmButtons[role]:SetCheck(true)
+  end
+
+  self.wndRoleConfirm:FindChild("AcceptButton"):Enable(#selectedRoles > 0)
+end
 -----------------------------------------------------------------------------------------------
 -- ReQueue Instance
 -----------------------------------------------------------------------------------------------
