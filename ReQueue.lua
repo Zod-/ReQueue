@@ -171,7 +171,7 @@ function ReQueue:OnGroupLeave()
       self:OnGroupLeave()
     end
   else
-    self.config.ignoreWarning = false
+    self:SetConfig("ignoreWarning", false)
   end
 end
 
@@ -225,7 +225,7 @@ function ReQueue:LoadSaveData()
 
   if not InGroup() then
     self.config.queueType = self.defaults.queueType
-    self.config.ignoreWarning = self.defaults.ignoreWarning
+    self:SetConfig("ignoreWarning", self.defaults.ignoreWarning)
   end
 
   self.lastQueueData = {}
@@ -349,6 +349,13 @@ end
 ---------------------------------------------------------------------------------------------------
 -- SoloQueueWarningForm Functions
 ---------------------------------------------------------------------------------------------------
+function ReQueue:SetConfig(map, value)
+  self.config[map] = value
+  if self.ui and self.ui.wndMain then
+    self.ui.wndMain:FindChild(self.ui.conventions.controlPrefix .. map):SetCheck(value)
+  end
+end
+
 function ReQueue:OnButtonGroupQueue(wndHandler, wndControl, eMouseButton)
   self:OnButtonUse(self.EnumQueueType.GroupQueue)
 end
@@ -359,7 +366,8 @@ end
 
 function ReQueue:OnButtonUse(queueType)
   self.config.queueType = queueType
-  self.config.ignoreWarning = self.wndSoloQW:FindChild("RememberCheckBox"):IsChecked()
+  self:SetConfig("ignoreWarning", self.wndSoloQW:FindChild("RememberCheckBox"):IsChecked())
+
   self:OnButtonDecline()
   self:StartQueue()
 end
