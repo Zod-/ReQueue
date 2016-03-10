@@ -32,6 +32,9 @@ local GetSelectedRoles = MatchingGame.GetSelectedRoles
 local IsRoleCheckActive = MatchingGame.IsRoleCheckActive
 local ConfirmRole = MatchingGame.ConfirmRole
 local DeclineRoleCheck = MatchingGame.DeclineRoleCheck
+local IsInMatchingGame = MatchingGame.IsInMatchingGame
+local IsMatchingGameFinished = MatchingGame.IsMatchingGameFinished
+local IsQueuedForMatching = MatchingGame.IsQueuedForMatching
 -----------------------------------------------------------------------------------------------
 -- Initialization
 -----------------------------------------------------------------------------------------------
@@ -149,7 +152,11 @@ function ReQueue:OnSlashCommand(cmd, args)
     return
   end
 
-  if MatchingGame.IsQueuedForMatching() then
+  if IsInMatchingGame() and not IsMatchingGameFinished() then
+    return
+  end
+
+  if IsQueuedForMatching() then
     self:ToggleQueueStatusWindow()
     return
   end
