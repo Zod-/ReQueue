@@ -287,7 +287,7 @@ function ReQueue:UpdateGroupQueueButtonStatus()
 end
 
 function ReQueue:DisplayRoleConfirm()
-  if not self.xmlDoc then
+  if not self.xmlDoc or self.wndRoleConfirm ~= nil then
     return
   elseif not self.xmlDoc:IsLoaded() then
     self.xmlDoc:RegisterCallback("DisplayRoleConfirm", self)
@@ -301,7 +301,7 @@ function ReQueue:DisplayRoleConfirm()
 end
 
 function ReQueue:DisplaySoloQueueWarning()
-  if not self.xmlDoc then
+  if not self.xmlDoc or self.wndSoloQW ~= nil then
     return
   elseif not self.xmlDoc:IsLoaded() then
     self.xmlDoc:RegisterCallback("DisplaySoloQueueWarning", self)
