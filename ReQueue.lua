@@ -49,12 +49,14 @@ function ReQueue:new(o)
   self.lastQueueData = {}
   self.inInstanceGroup = InInstanceGroup()
   self.MatchMaker = nil
-
+  self.newQueueData = false
+  self.queuesToLeave = 0
+  self.leftMatch = false
   return o
 end
 
 function ReQueue:Init()
-  Apollo.RegisterAddon(self, true, "ReQueue", {self.uiMapperLib})
+  Apollo.RegisterAddon(self, true, "ReQueue", {self.uiMapperLib, "MatchMaker"})
 end
 
 function ReQueue:GetDefaults()
@@ -82,6 +84,8 @@ function ReQueue:OnLoad()
   Apollo.RegisterEventHandler("Group_MemberPromoted", "UpdateGroupQueueButtonStatus", self)
   Apollo.RegisterEventHandler("MatchingEligibilityChanged", "UpdateGroupQueueButtonStatus", self)
   Apollo.RegisterEventHandler("CharacterCreated", "OnCharacterCreated", self)
+  Apollo.RegisterEventHandler("MatchLeft", "OnLeaveMatch", self)
+  Apollo.RegisterEventHandler("MatchingLeaveQueue", "OnLeaveQueue", self)
 
   self.MatchMaker = Apollo.GetAddon("MatchMaker")
 
@@ -103,8 +107,9 @@ function ReQueue:OnLoad()
 end
 
 function ReQueue:InitHooks()
-  self:Hook(MatchingGame, "Queue")
-  self:Hook(MatchingGame, "QueueAsGroup")
+  self:Hook(MatchMakingLib, "Queue")
+  self:Hook(MatchMakingLib, "QueueAsGroup")
+  self:Hook(MatchMakingLib, "LeaveAllQueues")
   self:PostHook(self.MatchMaker, "OnRoleCheck")
   self:RawHook(self.MatchMaker, "OnSoloQueue")
   self:RawHook(self.MatchMaker, "OnGroupQueue")
@@ -114,36 +119,53 @@ end
 -- ReQueue Hooks
 -----------------------------------------------------------------------------------------------
 function ReQueue:OnRoleCheck()
-  if self.config.autoRoleSelect and #GetSelectedRoles() > 0 then
+  if self.config.autoRoleSelect and #self:GetSelectedRoles() > 0 then
     self.MatchMaker:OnAcceptRole()
   end
 end
 
-function ReQueue:Queue(queueData)
+function ReQueue:LeaveAllQueues()
+  self.queuesToLeave = 0
+  for k, v in pairs(self.lastQueueData) do
+    if v:IsQueued() or v:IsQueuedAsGroup() then
+      self.queuesToLeave = self.queuesToLeave + 1
+    end
+  end
+end
+
+function ReQueue:Queue(queueData, queueOptions)
   self.config.queueType = self.EnumQueueType.SoloQueue
-  self:OnQueue(queueData)
+  self:OnQueue(queueData, queueOptions)
 end
 
-function ReQueue:QueueAsGroup(queueData)
+function ReQueue:QueueAsGroup(queueData, queueOptions)
   self.config.queueType = self.EnumQueueType.GroupQueue
-  self:OnQueue(queueData)
+  self:OnQueue(queueData, queueOptions)
 end
 
-function ReQueue:OnQueue(queueData)
-  self.lastQueueData = queueData
+function ReQueue:OnQueue(queueData, queueOptions)
+  if self:IsQueued() then
+    for k,v in pairs(queueData) do
+      table.insert(self.lastQueueData, v)
+    end
+    self.newQueueData = true
+  else
+    self.newQueueData = false
+    self.lastQueueData = queueData
+  end
+  self.queueOptions = queueOptions
 end
 
 --Contentfinder queue events, here we start the queue after getting the data
 function ReQueue:OnSoloQueue()
-  self:Queue(self.MatchMaker.arMatchesToQueue)
+  self:Queue(self.MatchMaker.arMatchesToQueue, self:GetQueueOptions())
   self:OnSlashCommand()
 end
 
 function ReQueue:OnGroupQueue()
-  self:QueueAsGroup(self.MatchMaker.arMatchesToQueue)
+  self:QueueAsGroup(self.MatchMaker.arMatchesToQueue, self:GetQueueOptions())
   self:OnSlashCommand()
 end
-
 -----------------------------------------------------------------------------------------------
 -- ReQueue Events
 -----------------------------------------------------------------------------------------------
@@ -156,12 +178,12 @@ function ReQueue:OnSlashCommand(cmd, args)
     return
   end
 
-  if IsInMatchingGame() and not IsMatchingGameFinished() then
+  if not self.newQueueData and self:IsQueued() then
+    self:ToggleQueueStatusWindow()
     return
   end
 
-  if IsQueuedForMatching() then
-    self:ToggleQueueStatusWindow()
+  if IsInGameInstance() and not IsFinished() then
     return
   end
 
@@ -208,7 +230,8 @@ function ReQueue:OnSave(eType)
   local saveData = {
     config = self.config,
     autoQueue = self.autoQueue,
-    lastQueueData = {}
+    lastQueueData = {},
+    queueOptions = self.queueOptions
   }
 
   for k, qd in pairs(self.lastQueueData) do
@@ -249,9 +272,32 @@ function ReQueue:LoadSaveData()
   for k, qd in pairs(self.saveData.lastQueueData or {}) do
     table.insert(self.lastQueueData, self:UnWrapSerializedMatchingGame(qd))
   end
+  self.queueOptions = self.saveData.queueOptions
   self.saveData = nil
 end
 
+function ReQueue:OnLeaveMatch()
+  self.leftMatch = true
+end
+
+function ReQueue:OnLeaveQueue()
+  if self.leftMatch then
+    self.leftMatch = false
+    self.newQueueData = true
+    return
+  end
+
+  if self.queuesToLeave > 0 then
+    self.queuesToLeave = self.queuesToLeave - 1
+    return
+  end
+
+  if not self:IsQueued() then
+    return
+  end
+
+  self:RemoveNotQueuedEntries()
+end
 -----------------------------------------------------------------------------------------------
 -- ReQueue Functions
 -----------------------------------------------------------------------------------------------
@@ -321,44 +367,48 @@ function ReQueue:DisplaySoloQueueWarning()
 end
 
 function ReQueue:StartQueue()
+  self.newQueueData = false
   if self.config.queueType == self.EnumQueueType.SoloQueue then
-    Queue(self.lastQueueData)
+    Queue(self.lastQueueData, self.queueOptions)
   else
-    QueueAsGroup(self.lastQueueData)
+    QueueAsGroup(self.lastQueueData, self.queueOptions)
   end
 end
 
 function ReQueue:SerializeMatchingGame(matchingGame)
-  return {
-    description = matchingGame:GetDescription(),
-    gameId = matchingGame:GetGameId(),
-    maxLevel = matchingGame:GetMaxLevel(),
-    minLevel = matchingGame:GetMinLevel(),
-    name = matchingGame:GetName(),
-    recommendedItemLevel = matchingGame:GetRecommendedItemLevel(),
-    teamSize = matchingGame:GetTeamSize(),
-    type = matchingGame:GetType(),
-    isRandom = matchingGame:IsRandom(),
-    isVeteran = matchingGame:IsVeteran()
+  local t = {
+    bIsRandom = matchingGame:IsRandom(),
+    bIsVeteran = matchingGame:IsVeteran()
   }
+  for k, v in pairs(matchingGame:GetInfo()) do
+    t[k] = v
+  end
+  return t
 end
 
 function ReQueue:UnWrapSerializedMatchingGame(serialized)
   local matchingGame = nil
-  local matchingGames = MatchingGame.GetMatchingGames(
-    serialized.type,
-    serialized.isVeteran,
+  local matchingGames = GetMatchMakingEntries(
+    serialized.eMatchType,
+    serialized.bIsVeteran,
     true
   )
   for k, mg in pairs(matchingGames) do
-    if  serialized.description == mg:GetDescription() and
-    serialized.gameId == mg:GetGameId() and
-    serialized.maxLevel == mg:GetMaxLevel() and
-    serialized.minLevel == mg:GetMinLevel() and
-    serialized.name == mg:GetName() and
-    serialized.recommendedItemLevel == mg:GetRecommendedItemLevel() and
-    serialized.teamSize == mg:GetTeamSize() and
-    serialized.isRandom == mg:IsRandom() then
+    local found = true
+    local cnt = 0
+    for k, v in pairs(mg:GetInfo()) do
+      if serialized[k] ~= v then
+        found = false
+        break
+      end
+      cnt = cnt + 1
+    end
+    self.debug = self.debug or ""
+    self.debug = self.debug .. " " .. tostring(cnt)
+    if serialized.bIsRandom ~= mg:IsRandom() then
+      found = false
+    end
+    if found then
       matchingGame = mg
       break
     end
@@ -368,14 +418,29 @@ end
 
 function ReQueue:ToggleQueueStatusWindow()
   local wnd = self.MatchMaker.tWndRefs.wndQueueStatus
-  if not wnd then
-    return
-  end
-  if wnd:IsVisible() then
+  if wnd and wnd:IsVisible() then
     self.MatchMaker:OnCloseQueueStatus()
   else
     self.MatchMaker:OnShowQueueStatus()
   end
+end
+
+function ReQueue:GetQueueOptions()
+  return self.MatchMaker.tQueueOptions[self.MatchMaker.eSelectedMasterType]
+end
+
+function ReQueue:RemoveNotQueuedEntries()
+  --iterate backwards and remove not queued entries
+  for i = #self.lastQueueData, 1, -1 do
+    local entry = self.lastQueueData[i]
+    if not entry:IsQueued() and not entry:IsQueuedAsGroup() then
+        table.remove(self.lastQueueData, i)
+    end
+  end
+end
+
+function ReQueue:IsQueued()
+  return IsQueuedForMatching() or IsQueuedAsGroupForMatching()
 end
 ---------------------------------------------------------------------------------------------------
 -- SoloQueueWarningForm Functions
@@ -417,7 +482,7 @@ end
 ---------------------------------------------------------------------------------------------------
 function ReQueue:OnAcceptRole(wndHandler, wndControl, eMouseButton)
   if IsRoleCheckActive() then
-    ConfirmRole()
+    ConfirmRole(self:GetSelectedRoles())
   end
   self.wndRoleConfirm:Close()
 end
@@ -434,10 +499,14 @@ function ReQueue:OnToggleRoleCheck(wndHandler, wndControl, eMouseButton)
     return
   end
 
-  MatchingGame.SelectRole(wndHandler:GetData(), wndHandler:IsChecked())
+  self.MatchMaker:HelperToggleRole(wndHandler:GetData(), self.MatchMaker.eSelectedMasterType, wndHandler:IsChecked())
 
-  local selectedRoles = MatchingGame.GetSelectedRoles()
-  self.wndRoleConfirm:FindChild("AcceptButton"):Enable(#selectedRoles > 0)
+  local selectedRoles = self:GetSelectedRoles()
+  self.wndRoleConfirm:FindChild("AcceptButton"):Enable(selectedRoles and #selectedRoles > 0)
+end
+
+function ReQueue:GetSelectedRoles()
+  return self.MatchMaker.tQueueOptions[self.MatchMaker.eSelectedMasterType].arRoles
 end
 
 function ReQueue:OnRoleConfirmClosed(wndHandler, wndControl, eMouseButton)
@@ -447,9 +516,9 @@ end
 
 function ReQueue:OnRoleConfirmShow(wndHandler, wndControl, eMouseButton)
   local roleConfirmButtons = {
-    [MatchingGame.Roles.Tank] = self.wndRoleConfirm:FindChild("TankBtn"),
-    [MatchingGame.Roles.Healer] = self.wndRoleConfirm:FindChild("HealerBtn"),
-    [MatchingGame.Roles.DPS] = self.wndRoleConfirm:FindChild("DPSBtn"),
+    [Roles.Tank] = self.wndRoleConfirm:FindChild("TankBtn"),
+    [Roles.Healer] = self.wndRoleConfirm:FindChild("HealerBtn"),
+    [Roles.DPS] = self.wndRoleConfirm:FindChild("DPSBtn"),
   }
 
   for role, wndButton in pairs(roleConfirmButtons) do
@@ -457,11 +526,11 @@ function ReQueue:OnRoleConfirmShow(wndHandler, wndControl, eMouseButton)
     wndButton:SetData(role)
   end
 
-  for idx, role in pairs(MatchingGame.GetEligibleRoles()) do
+  for idx, role in pairs(GetEligibleRoles()) do
     roleConfirmButtons[role]:Enable(true)
   end
 
-  local selectedRoles = MatchingGame.GetSelectedRoles()
+  local selectedRoles = self:GetSelectedRoles()
   for idx, role in pairs(selectedRoles) do
     roleConfirmButtons[role]:SetCheck(true)
   end
