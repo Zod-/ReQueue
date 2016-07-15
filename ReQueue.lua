@@ -20,7 +20,7 @@ local ReQueue = {
   },
   defaults = {},
   config = {},
-  version = "0.4.1",
+  version = "0.5",
   author = "Zod Bain@Jabbit"
 }
 
