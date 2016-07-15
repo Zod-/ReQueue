@@ -6,7 +6,8 @@ require "Apollo"
 require "Window"
 require "GameLib"
 require "GroupLib"
-require "MatchingGame"
+require "MatchingGameLib"
+require "MatchMakingLib"
 
 -----------------------------------------------------------------------------------------------
 -- ReQueue Module Definition
@@ -25,16 +26,19 @@ local ReQueue = {
 
 local InInstanceGroup = GroupLib.InInstance
 local InGroup = GroupLib.InGroup
-local Queue = MatchingGame.Queue
-local QueueAsGroup = MatchingGame.QueueAsGroup
+local Queue = MatchMakingLib.Queue
+local QueueAsGroup = MatchMakingLib.QueueAsGroup
 local IsCharacterLoaded = GameLib.IsCharacterLoaded
-local GetSelectedRoles = MatchingGame.GetSelectedRoles
-local IsRoleCheckActive = MatchingGame.IsRoleCheckActive
-local ConfirmRole = MatchingGame.ConfirmRole
-local DeclineRoleCheck = MatchingGame.DeclineRoleCheck
-local IsInMatchingGame = MatchingGame.IsInMatchingGame
-local IsMatchingGameFinished = MatchingGame.IsMatchingGameFinished
-local IsQueuedForMatching = MatchingGame.IsQueuedForMatching
+local IsRoleCheckActive = MatchingGameLib.IsRoleCheckActive
+local ConfirmRole = MatchingGameLib.ConfirmRole
+local DeclineRoleCheck = MatchingGameLib.DeclineRoleCheck
+local IsInGameInstance = MatchingGameLib.IsInGameInstance
+local IsFinished = MatchingGameLib.IsFinished
+local IsQueuedForMatching = MatchMakingLib.IsQueuedForMatching
+local IsQueuedAsGroupForMatching = MatchMakingLib.IsQueuedAsGroupForMatching
+local GetMatchMakingEntries = MatchMakingLib.GetMatchMakingEntries
+local Roles = MatchMakingLib.Roles
+local GetEligibleRoles = MatchMakingLib.GetEligibleRoles
 -----------------------------------------------------------------------------------------------
 -- Initialization
 -----------------------------------------------------------------------------------------------
