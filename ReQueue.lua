@@ -209,7 +209,8 @@ function ReQueue:OnGroupLeave()
     if not InGroup() then
       self:OnGroupLeave()
     end
-  else
+  else --Left all groups
+    self.config.queueType = self.EnumQueueType.SoloQueue
     self:SetConfig("ignoreWarning", false)
   end
 end
