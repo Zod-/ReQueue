@@ -26,6 +26,7 @@ local ReQueue = {
 
 local InInstanceGroup = GroupLib.InInstance
 local InGroup = GroupLib.InGroup
+local AmILeader = GroupLib.AmILeader
 local Queue = MatchMakingLib.Queue
 local QueueAsGroup = MatchMakingLib.QueueAsGroup
 local IsCharacterLoaded = GameLib.IsCharacterLoaded
@@ -284,7 +285,9 @@ end
 function ReQueue:OnLeaveQueue()
   if self.leftMatch then
     self.leftMatch = false
-    self.newQueueData = true
+    if AmILeader() then
+      self.newQueueData = true
+    end
     return
   end
 
@@ -317,7 +320,7 @@ function ReQueue:IsQueueDataEmpty()
 end
 
 function ReQueue:GetGroupQueueButtonStatus()
-  local buttonEnabled = GroupLib.AmILeader()
+  local buttonEnabled = AmILeader()
   if not buttonEnabled then
     return buttonEnabled
   end
