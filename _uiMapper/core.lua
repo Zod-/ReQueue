@@ -1,5 +1,5 @@
 local MAJOR = "uiMapper:0.9"
-MINOR = 1
+local MINOR = 1
 --[[-------------------------------------------------------------------------------------------
 	Client Lua Script for _uiMapper
 
@@ -43,7 +43,7 @@ Lib.conventions = {
 -- INSTANTIATION ------------------------------------------------------------------------------
 -----------------------------------------------------------------------------------------------
 function Lib:new(params)
-    o = {}
+    local o = {}
     setmetatable(o, self)
     self.__index = self
 
@@ -551,9 +551,9 @@ function Lib:note(text)
 		note:SetText(text)
 
 		--notes should resize to show the entire string
-		nWidth, nHeight = note:SetHeightToContentHeight()
+		local nWidth, nHeight = note:SetHeightToContentHeight()
 		nHeight = nHeight + 10
-		nLeft, nTop, nRight, nBottom = control:GetAnchorOffsets()
+		local nLeft, nTop, nRight, nBottom = control:GetAnchorOffsets()
 		control:SetAnchorOffsets(nLeft, nTop, nRight, nTop + nHeight + 3)
 
 		page:ArrangeChildrenVert()
@@ -881,7 +881,7 @@ function Lib:ShrinkPanel()
 	self.wndMain:FindChild("NavScroller"):Show(false, true)
 	self.wndMain:FindChild("Divider"):Show(false, true)
 
-	nLeft, nTop, nRight, nBottom = self.wndMain:GetAnchorOffsets()
+	local nLeft, nTop, nRight, nBottom = self.wndMain:GetAnchorOffsets()
 	self.wndMain:SetAnchorOffsets(nLeft, nTop, -810, nBottom)
 
 	nLeft, nTop, nRight, nBottom = self.wndMain:FindChild("ContentRegion"):GetAnchorOffsets()
