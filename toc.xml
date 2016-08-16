@@ -2,8 +2,8 @@
 <Addon Author="Zod Bain@Jabbit" APIVersion="12" Name="ReQueue" Description="Remembers the last queued content so that you can requeue with a macro or even automatically.">
     <Script Name="libs\GeminiHook\GeminiHook-1.0.lua" />
 
-    <Script Name="_uiMapper\core.lua"/>
-    <Form Name="_uiMapper\panel.xml"/>
+    <Script Name="libs\_uiMapper\core.lua"/>
+    <Form Name="libs\_uiMapper\panel.xml"/>
 
     <Script Name="ReQueue.lua"/>
     <Script Name="settings.lua"/>

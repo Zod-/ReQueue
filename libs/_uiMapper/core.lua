@@ -79,7 +79,7 @@ function Lib:build(callback)
   self.callback = callback
 
   --load our config template
-  self.xmlDoc = XmlDoc.CreateFromFile("_uiMapper/panel.xml")
+  self.xmlDoc = XmlDoc.CreateFromFile("libs/_uiMapper/panel.xml")
   self.xmlDoc:RegisterCallback("OnDocLoaded", self)
 
   return self
