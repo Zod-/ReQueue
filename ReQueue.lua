@@ -13,7 +13,7 @@ require "MatchMakingLib"
 -- ReQueue Module Definition
 -----------------------------------------------------------------------------------------------
 local ReQueue = {
-  uiMapperLib = "uiMapper:0.9",
+  uiMapperLib = "uiMapper:0.9.3",
   EnumQueueType = {
     SoloQueue = 0,
     GroupQueue = 1
@@ -96,15 +96,15 @@ function ReQueue:OnLoad()
 
   local uiMapper = Apollo.GetPackage(self.uiMapperLib).tPackage
   self.ui = uiMapper:new({
-    container = self.config,
-    defaults  = self.defaults,
-    name      = "ReQueue Configuration",
-    author    = self.author,
-    version   = self.version
-  })
+      container = self.config,
+      defaults = self.defaults,
+      name = "ReQueue Configuration",
+      author = self.author,
+      version = self.version
+    })
   self.ui:build(function(ui)
-    self:BuildConfig(ui)
-  end)
+      self:BuildConfig(ui)
+    end)
 end
 
 function ReQueue:InitHooks()
@@ -438,7 +438,7 @@ function ReQueue:RemoveNotQueuedEntries()
   for i = #self.lastQueueData, 1, -1 do
     local entry = self.lastQueueData[i]
     if not entry:IsQueued() and not entry:IsQueuedAsGroup() then
-        table.remove(self.lastQueueData, i)
+      table.remove(self.lastQueueData, i)
     end
   end
 end
