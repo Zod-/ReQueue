@@ -14,6 +14,7 @@ require "MatchMakingLib"
 -----------------------------------------------------------------------------------------------
 local ReQueue = {
   uiMapperLib = "uiMapper:0.9.3",
+  uiMapperPath = "libs/_uiMapper/",
   EnumQueueType = {
     SoloQueue = 0,
     GroupQueue = 1
@@ -100,11 +101,10 @@ function ReQueue:OnLoad()
       defaults = self.defaults,
       name = "ReQueue Configuration",
       author = self.author,
-      version = self.version
-    })
-  self.ui:build(function(ui)
-      self:BuildConfig(ui)
-    end)
+      version = self.version,
+      path = self.uiMapperPath,
+    }
+  ):build(self.BuildConfig, self)
 end
 
 function ReQueue:InitHooks()

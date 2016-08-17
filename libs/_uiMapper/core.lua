@@ -55,6 +55,7 @@ function Lib:new(params)
     author = params.author,
     version = params.version,
     slash = params.slash,
+    path = params.path or "_uiMapper/",
     callbacks = {
       onshow = params.onshow,
       onhide = params.onhide,
@@ -68,18 +69,16 @@ end
 
 -- INITIALIZATION -----------------------------------------------------------------------------
 -----------------------------------------------------------------------------------------------
-function Lib:build(callback)
+function Lib:build(handler, context)
   --the user is requesting to build, so let's set the workspace for them
-  --the build method requires a callback
-  if not callback or type(callback) ~= 'function' then
-    return
-  end
+  --the build method requires a handler
+  assert(type(handler) == 'function')
 
   --store the callback so we can let the user know when we're ready
-  self.callback = callback
+  self.callback = {handler = handler, context = context}
 
   --load our config template
-  self.xmlDoc = XmlDoc.CreateFromFile("libs/_uiMapper/panel.xml")
+  self.xmlDoc = XmlDoc.CreateFromFile(self.meta.path .. "panel.xml")
   self.xmlDoc:RegisterCallback("OnDocLoaded", self)
 
   return self
@@ -108,10 +107,7 @@ function Lib:OnDocLoaded()
       slashLabel:Invoke()
       Apollo.RegisterSlashCommand(self.meta.slash, "OnSlashCommand", self)
     end
-    if self.callback and type(self.callback) == 'function' then
-      --set up the workspace for this ui
-      self.callback(self)
-    end
+    self:HelperDoCallback(self.callback, self)
   end
 end
 
@@ -120,16 +116,12 @@ end
 --main panel
 function Lib:OnMainWindowHide(wndHandle, wndControl)
   if wndControl:GetName() ~= self.wndMain:GetName() then return end
-  if self.meta.callbacks.onhide and type(self.meta.callbacks.onhide) == 'function' then
-    self.meta.callbacks.onhide(self)
-  end
+  self:HelperDoCallback(self.meta.callbacks.onhide, self)
 end
 
 function Lib:OnMainWindowShow(wndHandle, wndControl)
   if wndControl:GetName() ~= self.wndMain:GetName() then return end
-  if self.meta.callbacks.onshow and type(self.meta.callbacks.onshow) == 'function' then
-    self.meta.callbacks.onshow(self)
-  end
+  self:HelperDoCallback(self.meta.callbacks.onshow, self)
 end
 
 function Lib:OnSlashCommand()
@@ -185,9 +177,7 @@ function Lib:OnRestoreDefaultsConfirm(wndHandle)
   end
 
   --run any callbacks
-  if self.meta.callbacks.ondefault and type(self.meta.callbacks.ondefault) == 'function' then
-    self.meta.callbacks.ondefault(self)
-  end
+  self:HelperDoCallback(self.meta.callbacks.ondefault, self)
 
   --reload the ui
   RequestReloadUI()
@@ -203,9 +193,7 @@ function Lib:OnNavChange(wndHandle)
   self:ClearOtherNavigation(categoryName)
   pageContainer:Invoke()
   self:CloseAllPopups()
-  if self.meta.callbacks.onnavchange and type(self.meta.callbacks.onnavchange) == 'function' then
-    self.meta.callbacks.onnavchange(pageContainer, categoryName)
-  end
+  self:HelperDoCallback(self.meta.callbacks.onnavchange, pageContainer, categoryName)
 end
 
 --checkbox
@@ -217,11 +205,7 @@ function Lib:OnCheckChange(wndHandle)
   local value = wndHandle:IsChecked()
   local oldValue = self:GetMapped(map)
   self:SetMapped(map, value)
-
-  --onchange callback
-  if data.callbacks.onchange and type(data.callbacks.onchange) == 'function' then
-    data.callbacks.onchange(wndHandle, map, value, oldValue)
-  end
+  self:HelperDoCallback(data.callbacks.onchange, wndHandle, map, value, oldValue)
 end
 
 --input
@@ -239,11 +223,7 @@ function Lib:OnInputChange(wndHandle)
 
   --update the user's variable
   self:SetMapped(map, value)
-
-  --onchange callback
-  if data.callbacks.onchange and type(data.callbacks.onchange) == 'function' then
-    data.callbacks.onchange(wndHandle, map, value, oldValue)
-  end
+  self:HelperDoCallback(data.callbacks.onchange, wndHandle, map, value, oldValue)
 end
 
 --custom button
@@ -265,11 +245,7 @@ function Lib:OnSliderUpdate(wndHandle)
 
   --update the user's variable
   self:SetMapped(map, tonumber(nValue))
-
-  --callback
-  if data.callbacks.onchange and type(data.callbacks.onchange) == 'function' then
-    data.callbacks.onchange(wndHandle, map, tonumber(nValue), oldValue)
-  end
+  self:HelperDoCallback(data.callbacks.onchange, wndHandle, map, tonumber(nValue), oldValue)
 end
 
 function Lib:OnSliderEditboxUpdate(wndHandle)
@@ -299,11 +275,7 @@ function Lib:OnSliderEditboxUpdate(wndHandle)
 
   --update the user's variable
   self:SetMapped(map, tonumber(nValue))
-
-  --callback
-  if data.callbacks.onchange and type(data.callbacks.onchange) == 'function' then
-    data.callbacks.onchange(wndHandle, map, tonumber(nValue), oldValue)
-  end
+  self:HelperDoCallback(data.callbacks.onchange, wndHandle, map, tonumber(nValue), oldValue)
 end
 
 --combo button
@@ -332,18 +304,13 @@ function Lib:OnComboButtonClick(wndHandle)
       local button = control:FindChild("button")
 
       button:SetText(v[1])
-
-      if data.callbacks.onitemadded and type(data.callbacks.onitemadded) == 'function' then
-        data.callbacks.onitemadded(button)
-      end
+      self:HelperDoCallback(data.callbacks.onitemadded, button)
 
       panel:ArrangeChildrenVert()
       panel:SetVScrollPos(0)
     end
   end
-  if data.callbacks.onpopulated and type(data.callbacks.onpopulated) == 'function' then
-    data.callbacks.onpopulated(panel)
-  end
+  self:HelperDoCallback(data.callbacks.onpopulated, panel)
   popup:Invoke()
 end
 
@@ -361,11 +328,7 @@ function Lib:OnComboOptionClick(wndHandle)
 
   --close the popup
   self.wndMain:FindChild("PopupMultiChoice"):Close()
-
-  --onchange callback
-  if data.callbacks.onchange and type(data.callbacks.onchange) == 'function' then
-    data.callbacks.onchange(source, self.useComboMap, value, oldValue)
-  end
+  self:HelperDoCallback(data.callbacks.onchange, source, self.useComboMap, value, oldValue)
 end
 
 --color button
@@ -499,9 +462,7 @@ function Lib:OnColorPickerApply(wndHandle, wndControl)
   --close the popup
   wndHandle:GetParent():Close()
 
-  if data.callbacks.onchange and type(data.callbacks.onchange) == 'function' then
-    data.callbacks.onchange(swatch, map, returnColor, oldValue)
-  end
+  self:HelperDoCallback(self.meta.callbacks.onchange, swatch, map, returnColor, oldValue)
 end
 
 function Lib:OnFillOpacityChanged(wndHandle, wndControl, fNewValue)
@@ -1144,6 +1105,28 @@ end
 
 function Lib:log(msg)
   ChatSystemLib.PostOnChannel(2, "[uiMapper]: " .. msg)
+end
+
+function Lib:HelperDoCallback(callback, ...)
+  local handler, context
+  if type(callback) == 'function' then
+    handler = callback
+  elseif type(callback) == 'table' and type(callback.handler) == 'function' then
+    handler = callback.handler
+    context = callback.context
+  end
+
+  if handler then
+    local status, err
+    if context then
+      status, err = pcall(handler, context, ...)
+    else
+      status, err = pcall(handler, ...)
+    end
+    if not status then
+      self:log(err)
+    end
+  end
 end
 
 -- Register Package ---------------------------------------------------------------------------
