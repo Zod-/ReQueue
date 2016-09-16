@@ -41,6 +41,7 @@ local IsQueuedAsGroupForMatching = MatchMakingLib.IsQueuedAsGroupForMatching
 local GetMatchMakingEntries = MatchMakingLib.GetMatchMakingEntries
 local Roles = MatchMakingLib.Roles
 local GetEligibleRoles = MatchMakingLib.GetEligibleRoles
+local next = next
 -----------------------------------------------------------------------------------------------
 -- Initialization
 -----------------------------------------------------------------------------------------------
@@ -127,8 +128,10 @@ end
 
 function ReQueue:LeaveAllQueues()
   self.queuesToLeave = 0
-  for k, v in pairs(self.lastQueueData) do
-    if v:IsQueued() or v:IsQueuedAsGroup() then
+  local size = #self.lastQueueData
+  for i = 1, size do
+    local queueData = self.lastQueueData[i]
+    if queueData:IsQueued() or queueData:IsQueuedAsGroup() then
       self.queuesToLeave = self.queuesToLeave + 1
     end
   end
@@ -146,7 +149,7 @@ end
 
 function ReQueue:OnQueue(queueData, queueOptions)
   if self:IsQueued() then
-    for k,v in pairs(queueData) do
+    for _, v in next, queueData do
       table.insert(self.lastQueueData, v)
     end
     self.newQueueData = true
@@ -170,7 +173,7 @@ end
 -----------------------------------------------------------------------------------------------
 -- ReQueue Events
 -----------------------------------------------------------------------------------------------
-function ReQueue:OnSlashCommand(cmd, args)
+function ReQueue:OnSlashCommand(_, args)
   if args == "config" then
     self:OnConfigure()
     return
@@ -236,8 +239,10 @@ function ReQueue:OnSave(eType)
     queueOptions = self.queueOptions
   }
 
-  for k, qd in pairs(self.lastQueueData) do
-    table.insert(saveData.lastQueueData, self:SerializeMatchingGame(qd))
+  local size = #self.lastQueueData
+  for i = 1, size do
+    local queueData = self.lastQueueData[i]
+    table.insert(saveData.lastQueueData, self:SerializeMatchingGame(queueData))
   end
   return saveData
 end
@@ -259,7 +264,7 @@ function ReQueue:LoadSaveData()
     return
   end
 
-  for k, v in pairs(self.config) do
+  for k, _ in next, self.config do
     if self.saveData.config[k] ~= nil then
       self.config[k] = self.saveData.config[k]
     end
@@ -271,7 +276,7 @@ function ReQueue:LoadSaveData()
   end
 
   self.lastQueueData = {}
-  for k, qd in pairs(self.saveData.lastQueueData or {}) do
+  for _, qd in pairs(self.saveData.lastQueueData or {}) do
     table.insert(self.lastQueueData, self:UnWrapSerializedMatchingGame(qd))
   end
   self.queueOptions = self.saveData.queueOptions
@@ -325,7 +330,9 @@ function ReQueue:GetGroupQueueButtonStatus()
     return buttonEnabled
   end
 
-  for k, queueData in pairs(self.lastQueueData) do
+  local size = #self.lastQueueData
+  for i = 1, size do
+    local queueData = self.lastQueueData[i]
     buttonEnabled = queueData:DoesGroupMeetRequirements()
     if not buttonEnabled then
       break
@@ -397,10 +404,10 @@ function ReQueue:UnWrapSerializedMatchingGame(serialized)
     serialized.bIsVeteran,
     true
   )
-  for k, mg in pairs(matchingGames) do
+  for _, mg in next, matchingGames do
     local found = true
     local cnt = 0
-    for k, v in pairs(mg:GetInfo()) do
+    for k, v in next, mg:GetInfo() do
       if serialized[k] ~= v then
         found = false
         break
@@ -456,11 +463,11 @@ function ReQueue:SetConfig(map, value)
   end
 end
 
-function ReQueue:OnButtonGroupQueue(wndHandler, wndControl, eMouseButton)
+function ReQueue:OnButtonGroupQueue()
   self:OnButtonUse(self.EnumQueueType.GroupQueue)
 end
 
-function ReQueue:OnButtonSoloQueue(wndHandler, wndControl, eMouseButton)
+function ReQueue:OnButtonSoloQueue()
   self:OnButtonUse(self.EnumQueueType.SoloQueue)
 end
 
@@ -472,11 +479,11 @@ function ReQueue:OnButtonUse(queueType)
   self:StartQueue()
 end
 
-function ReQueue:OnButtonDecline(wndHandler, wndControl, eMouseButton)
+function ReQueue:OnButtonDecline()
   self.wndSoloQW:Close()
 end
 
-function ReQueue:OnSoloQWClosed(wndHandler, wndControl, eMouseButton)
+function ReQueue:OnSoloQWClosed()
   --free memory
   self.wndSoloQW = nil
 end
@@ -484,21 +491,21 @@ end
 ---------------------------------------------------------------------------------------------------
 -- ConfirmRole Form Functions
 ---------------------------------------------------------------------------------------------------
-function ReQueue:OnAcceptRole(wndHandler, wndControl, eMouseButton)
+function ReQueue:OnAcceptRole()
   if IsRoleCheckActive() then
     ConfirmRole(self:GetSelectedRoles())
   end
   self.wndRoleConfirm:Close()
 end
 
-function ReQueue:OnCancelRole(wndHandler, wndControl, eMouseButton)
+function ReQueue:OnCancelRole()
   if IsRoleCheckActive() then
     DeclineRoleCheck()
   end
   self.wndRoleConfirm:Close()
 end
 
-function ReQueue:OnToggleRoleCheck(wndHandler, wndControl, eMouseButton)
+function ReQueue:OnToggleRoleCheck(wndHandler, wndControl)
   if wndHandler ~= wndControl then
     return
   end
@@ -513,12 +520,12 @@ function ReQueue:GetSelectedRoles()
   return self.MatchMaker.tQueueOptions[self.MatchMaker.eSelectedMasterType].arRoles
 end
 
-function ReQueue:OnRoleConfirmClosed(wndHandler, wndControl, eMouseButton)
+function ReQueue:OnRoleConfirmClosed()
   --free memory
   self.wndRoleConfirm = nil
 end
 
-function ReQueue:OnRoleConfirmShow(wndHandler, wndControl, eMouseButton)
+function ReQueue:OnRoleConfirmShow()
   local roleConfirmButtons = {
     [Roles.Tank] = self.wndRoleConfirm:FindChild("TankBtn"),
     [Roles.Healer] = self.wndRoleConfirm:FindChild("HealerBtn"),
@@ -530,12 +537,12 @@ function ReQueue:OnRoleConfirmShow(wndHandler, wndControl, eMouseButton)
     wndButton:SetData(role)
   end
 
-  for idx, role in pairs(GetEligibleRoles()) do
+  for _, role in next, GetEligibleRoles() do
     roleConfirmButtons[role]:Enable(true)
   end
 
   local selectedRoles = self:GetSelectedRoles()
-  for idx, role in pairs(selectedRoles) do
+  for _, role in next, selectedRoles do
     roleConfirmButtons[role]:SetCheck(true)
   end
 
